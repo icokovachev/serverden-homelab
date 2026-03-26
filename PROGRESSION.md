@@ -698,15 +698,58 @@ git push
 
 ---
 
-### Step 12 — Set up the GitOps repo structure
-
-*Coming next*
-
 ---
 
 ## Phase 2 — GitOps Control Plane
 
-*Coming after Phase 1 is complete*
+**Goal:** ArgoCD watches this Git repo and owns the cluster state. No more manual `kubectl apply`.
+
+We use the **App-of-Apps** pattern:
+- A single root `Application` is applied manually once
+- It watches `gitops/apps/` in the repo
+- That directory contains one `Application` manifest per platform component
+- ArgoCD creates and syncs all child apps automatically
+
+```
+gitops/
+├── root-app.yaml          ← applied manually once (bootstraps everything)
+└── apps/
+    ├── cert-manager-config.yaml
+    ├── istio-config.yaml
+    ├── cloudflare.yaml
+    └── argocd-config.yaml
+```
+
+### Step 12 — Scaffold the GitOps structure
+
+All files are already in the repo. Apply the root app once to hand control to ArgoCD.
+
+> Run from your **local Windows machine**.
+
+```powershell
+kubectl apply -f gitops/root-app.yaml
+```
+
+Watch ArgoCD create and sync all child apps:
+```bash
+kubectl get applications -n argocd
+# All apps should go: OutOfSync → Synced
+```
+
+Open `https://argocd.kovachev-projects.com` — you should see the root app and all child apps in the UI, all `Healthy` and `Synced`.
+
+> **Note:** The `argocd-config` app manages the ArgoCD VirtualService. If it shows a sync error about namespace mismatch, that is expected — the VirtualService lives in the `argocd` namespace and is already applied. ArgoCD will adopt it on the first sync.
+
+### Step 13 — Verify GitOps is working
+
+Make a test change to confirm the GitOps loop works end-to-end:
+
+1. Edit any manifest in `infrastructure/` on your local machine
+2. `git commit -m "test: gitops loop" && git push`
+3. Watch ArgoCD detect the drift and auto-sync within ~3 min (default poll interval)
+4. Revert the change and push again
+
+If auto-sync triggers correctly, Phase 2 is complete.
 
 ---
 
