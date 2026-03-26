@@ -1,0 +1,17 @@
+# Wildcard TLS certificate for *.lab.kovachev-projects.com
+# Stored in istio-system so the Istio Gateway can reference it directly.
+# Start with letsencrypt-production, switch to letsencrypt-production after validation.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: homelab-wildcard-cert
+  namespace: istio-system
+spec:
+  secretName: homelab-wildcard-cert
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  commonName: "*.kovachev-projects.com"
+  dnsNames:
+    - "*.kovachev-projects.com"
+    - "kovachev-projects.com"
